@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caddyserver/caddy"
+	"github.com/admpub/caddy"
 )
 
 func TestParseBlock(t *testing.T) {
