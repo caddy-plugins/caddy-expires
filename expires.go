@@ -116,8 +116,9 @@ func parseRules(c *caddy.Controller) ([]matchRule, error) {
 	return rules, nil
 }
 
+var durationRegex = regexp.MustCompile(`(?P<years>\d+y)?(?P<months>\d+m)?(?P<days>\d+d)?T?(?P<hours>\d+h)?(?P<minutes>\d+i)?(?P<seconds>\d+s)?`)
+
 func parseDuration(str string) time.Duration {
-	durationRegex := regexp.MustCompile(`(?P<years>\d+y)?(?P<months>\d+m)?(?P<days>\d+d)?T?(?P<hours>\d+h)?(?P<minutes>\d+i)?(?P<seconds>\d+s)?`)
 	matches := durationRegex.FindStringSubmatch(str)
 
 	years := parseInt64(matches[1])
@@ -149,11 +150,17 @@ type expiresHandler struct {
 	Rules []matchRule
 }
 
+const (
+	headerExpires      = "Expires"
+	headerCacheControl = "Cache-Control"
+	cacheControlPrefix = "public, max-age="
+)
+
 func (h expiresHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
 	for _, rule := range h.Rules {
 		if rule.Match(w.Header(), r) {
-			w.Header().Set("Expires", time.Now().Add(rule.Duration()).UTC().Format(time.RFC1123))
-			w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(int(rule.Duration().Seconds())))
+			w.Header().Set(headerExpires, time.Now().Add(rule.Duration()).UTC().Format(http.TimeFormat))
+			w.Header().Set(headerCacheControl, cacheControlPrefix+strconv.Itoa(int(rule.Duration().Seconds())))
 			break
 		}
 	}
